@@ -6,13 +6,19 @@ class UserProvider extends ChangeNotifier {
   Map<String, dynamic>? get user => _user;
 
   void setUser(Map<String, dynamic>? user) {
+    debugPrint('Setting user: $user');
     _user = user;
     notifyListeners();
   }
 
-  bool get isLoggedIn => _user != null;
+  bool get isLoggedIn {
+    final loggedIn = _user != null && _user!.isNotEmpty;
+    debugPrint('Checking login status: $loggedIn');
+    return loggedIn;
+  }
 
   void logout() {
+    debugPrint('Logging out user: $_user');
     _user = null;
     notifyListeners();
   }

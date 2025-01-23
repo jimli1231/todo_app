@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../utils/database_helper.dart';
+import '../utils/storage_helper.dart';
 import '../utils/user_provider.dart';
+import '../main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,7 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _dbHelper = DatabaseHelper();
+  final _storage = StorageHelper();
   bool _isLoading = false;
 
   Future<void> _login() async {
@@ -24,15 +25,17 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        final user = await _dbHelper.getUser(
+        final user = await _storage.getUser(
           _usernameController.text,
           _passwordController.text,
         );
 
-        if (user != null) {
+        if (user != null && user.isNotEmpty) {
           if (!mounted) return;
           context.read<UserProvider>().setUser(user);
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
         } else {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -61,15 +64,20 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        final userId = await _dbHelper.insertUser({
+        final success = await _storage.insertUser({
           'username': _usernameController.text,
           'password': _passwordController.text,
         });
 
-        if (userId > 0) {
+        if (success) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('注册成功，请登录')),
+          );
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('注册失败，请重试')),
           );
         }
       } catch (e) {

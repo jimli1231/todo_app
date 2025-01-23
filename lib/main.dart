@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'pages/home_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/progress_page.dart';
+import 'pages/login_page.dart';
+import 'utils/user_provider.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => UserProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -18,7 +28,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
+          return userProvider.isLoggedIn
+              ? const MainScreen()
+              : const LoginPage();
+        },
+      ),
     );
   }
 }
@@ -32,23 +48,24 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-
-  static const List<Widget> _pages = [
-    HomePage(),
-    ProgressPage(),
-    ProfilePage(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  final _progressKey = GlobalKey<ProgressPageState>();
 
   @override
   Widget build(BuildContext context) {
+    // 检查登录状态
+    if (!Provider.of<UserProvider>(context).isLoggedIn) {
+      return const LoginPage();
+    }
+
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          const HomePage(),
+          ProgressPage(key: _progressKey),
+          const ProfilePage(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(
@@ -68,5 +85,16 @@ class _MainScreenState extends State<MainScreen> {
         onTap: _onItemTapped,
       ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // 如果切换到进度页面，触发刷新
+    if (index == 1) {
+      _progressKey.currentState?.refresh();
+    }
   }
 }
